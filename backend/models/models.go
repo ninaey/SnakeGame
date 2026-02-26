@@ -32,12 +32,14 @@ type Item struct {
 	Kind  ItemKind `json:"kind"`
 }
 
-// CartItem is a single line in the cart (item id, display name, price, kind).
+// CartItem is a single line in the cart (unique line id, item id, display name, price, quantity, kind).
 type CartItem struct {
-	ItemID string   `json:"itemId"`
-	Name   string   `json:"name"`
-	Price  int      `json:"price"`
-	Kind   ItemKind `json:"kind"`
+	ID       string   `json:"id"`
+	ItemID   string   `json:"itemId"`
+	Name     string   `json:"name"`
+	Price    int      `json:"price"`
+	Quantity int      `json:"quantity"`
+	Kind     ItemKind `json:"kind"`
 }
 
 var (
@@ -52,9 +54,12 @@ var (
 		"skin_fire":    {ID: "skin_fire", Name: "Fire", Price: 100},
 	}
 
-	// LifeItems catalog: id -> LifeItem
+	// LifeItems catalog: id -> LifeItem (consumables that can have quantity in cart)
 	LifeItems = map[string]LifeItem{
-		"extra_life": {ID: "extra_life", Name: "Extra Life", Price: 50},
+		"extra_life":       {ID: "extra_life", Name: "Extra Life", Price: 50},
+		"speed_boost":      {ID: "speed_boost", Name: "Speed Boost", Price: 30},
+		"shield":           {ID: "shield", Name: "Shield", Price: 40},
+		"score_multiplier": {ID: "score_multiplier", Name: "Score Multiplier", Price: 35},
 	}
 )
 

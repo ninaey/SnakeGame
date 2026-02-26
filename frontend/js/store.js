@@ -1,38 +1,12 @@
 /**
- * Store module: player balance, skins catalog, cart, and store UI.
- * Depends on globals: state, API, toast
+ * Store module: cart and store UI. Uses globals: state, API, toast, apiGet, apiPost, apiPatch, apiDelete, skins, loadPlayer
  */
-
-const skins = {
-    default: { name: 'Default', price: 0, head: '#2ed573', body: '#27ae60', eye: '#1a1a20' },
-    skin_gold: { name: 'Gold', price: 100, head: '#ffd700', body: '#daa520', eye: '#1a1a20' },
-    skin_rainbow: { name: 'Rainbow', price: 100, head: '#ff6b9d', body: '#c44dff', eye: '#1a1a20', gradient: true },
-    skin_ice: { name: 'Ice', price: 100, head: '#87ceeb', body: '#b0e0e6', eye: '#1a1a20' },
-    skin_fire: { name: 'Fire', price: 100, head: '#ff6b35', body: '#f7931e', eye: '#1a1a20' }
-};
-
-function getSkin(id) {
-    return skins[id] || skins.default;
-}
-
-async function loadPlayer() {
-    try {
-        const p = await apiGet('/api/player');
-        state.balance = p.Balance ?? 0;
-        state.ownedSkins = p.OwnedSkins || ['default'];
-        state.equippedSkin = p.EquippedSkin || 'default';
-    } catch (e) {
-        state.balance = 0;
-        state.ownedSkins = ['default'];
-        state.equippedSkin = 'default';
-    }
-}
 
 const cartData = { items: [], total: 0 };
 
 async function loadCart() {
     try {
-        const c = await apiGet('/api/cart');
+        const c = await apiGet('/api/user/cart');
         cartData.items = c.items || [];
         cartData.total = c.total || 0;
     } catch (e) {
@@ -42,7 +16,8 @@ async function loadCart() {
 }
 
 function renderCart() {
-    document.getElementById('cartCount').textContent = '(' + cartData.items.length + ')';
+    const itemCount = cartData.items.reduce((n, it) => n + (it.quantity || 1), 0);
+    document.getElementById('cartCount').textContent = '(' + itemCount + ')';
     document.getElementById('cartTotal').textContent = cartData.total;
     const listEl = document.getElementById('cartList');
     if (cartData.items.length === 0) {
@@ -51,36 +26,68 @@ function renderCart() {
         return;
     }
     document.getElementById('btnCheckout').disabled = state.balance < cartData.total;
-    listEl.innerHTML = cartData.items.map((it, i) =>
-        `<div class="cart-item" data-item-id="${it.itemId}" data-index="${i}">
-            <span class="cart-item-info">${it.name}</span>
-            <span class="cart-item-price">${it.price} 🪙</span>
-            <button type="button" class="cart-item-remove" data-item-id="${it.itemId}">Remove</button>
-        </div>`
-    ).join('');
+    listEl.innerHTML = cartData.items.map((it) => {
+        const qty = it.quantity ?? 1;
+        const lineTotal = (it.price || 0) * qty;
+        return `<div class="cart-item" data-id="${it.id}">
+            <span class="cart-item-info">${it.name}${qty > 1 ? ' ×' + qty : ''}</span>
+            <span class="cart-item-price">${lineTotal} 🪙</span>
+            <div class="cart-item-qty">
+                <button type="button" class="qty-btn" data-id="${it.id}" data-delta="-1">−</button>
+                <span class="qty-num">${qty}</span>
+                <button type="button" class="qty-btn" data-id="${it.id}" data-delta="1">+</button>
+            </div>
+            <button type="button" class="cart-item-remove" data-id="${it.id}">Remove</button>
+        </div>`;
+    }).join('');
     listEl.querySelectorAll('.cart-item-remove').forEach(btn => {
         btn.onclick = async () => {
             try {
-                await apiPost('/api/cart/remove', { itemId: btn.dataset.itemId });
+                await apiDelete('/api/user/cart/items/' + btn.dataset.id);
                 await loadCart();
                 renderCart();
                 toast('Removed from cart', 'success');
             } catch (e) { toast('Could not remove', 'error'); }
         };
     });
+    listEl.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const id = btn.dataset.id;
+            const delta = parseInt(btn.dataset.delta, 10);
+            const it = cartData.items.find(i => i.id === id);
+            if (!it) return;
+            const newQty = Math.max(1, (it.quantity || 1) + delta);
+            try {
+                await apiPatch('/api/user/cart/items/' + id, { quantity: newQty });
+                await loadCart();
+                renderCart();
+                toast('Cart updated', 'success');
+            } catch (e) { toast('Could not update quantity', 'error'); }
+        };
+    });
 }
 
 async function renderStore() {
     document.getElementById('storeCoins').textContent = state.balance;
+    const consumables = [
+        { id: 'extra_life', name: 'Extra Life', price: 50, color: '135deg, #ff4757, #ff6b81' },
+        { id: 'speed_boost', name: 'Speed Boost', price: 30, color: '135deg, #00d4aa, #00a080' },
+        { id: 'shield', name: 'Shield', price: 40, color: '135deg, #3498db, #2980b9' },
+        { id: 'score_multiplier', name: 'Score Multiplier', price: 35, color: '135deg, #ffc107, #f7931e' }
+    ];
     const livesEl = document.getElementById('storeLives');
-    livesEl.innerHTML = `
-        <div class="store-card">
-            <div class="preview" style="background: linear-gradient(135deg, #ff4757, #ff6b81);"></div>
-            <div class="name">Extra Life</div>
-            <div class="price">50 🪙</div>
-            <button id="buyLife">Add to cart</button>
-        </div>`;
-    document.getElementById('buyLife').onclick = () => addToCart('extra_life', 50);
+    livesEl.innerHTML = consumables.map(c =>
+        `<div class="store-card">
+            <div class="preview" style="background: linear-gradient(${c.color});"></div>
+            <div class="name">${c.name}</div>
+            <div class="price">${c.price} 🪙</div>
+            <button id="buy-${c.id}">Add to cart</button>
+        </div>`
+    ).join('');
+    consumables.forEach(c => {
+        const btn = document.getElementById('buy-' + c.id);
+        if (btn) btn.onclick = () => addToCart(c.id, c.price);
+    });
 
     const skinsEl = document.getElementById('storeSkins');
     skinsEl.innerHTML = Object.entries(skins).map(([id, s]) => {
@@ -114,12 +121,14 @@ async function renderStore() {
     });
     await loadCart();
     renderCart();
+    const btnCheckout = document.getElementById('btnCheckout');
+    if (btnCheckout) btnCheckout.onclick = checkoutCart;
 }
 
 async function addToCart(itemId, price) {
     if (state.balance < price) { toast('Not enough coins', 'error'); return; }
     try {
-        const res = await apiPost('/api/cart', { itemId });
+        const res = await apiPost('/api/user/cart/items', { itemId });
         cartData.items = res.items || [];
         cartData.total = res.total || 0;
         renderCart();
@@ -133,7 +142,7 @@ async function checkoutCart() {
     if (cartData.items.length === 0) { toast('Cart is empty', 'error'); return; }
     if (state.balance < cartData.total) { toast('Not enough coins', 'error'); return; }
     try {
-        const res = await apiPost('/api/checkout', {});
+        const res = await apiPost('/api/user/orders', {});
         if (res.Status === 'Success') {
             state.balance = res.Balance ?? state.balance;
             state.ownedSkins = res.OwnedSkins ?? state.ownedSkins;
