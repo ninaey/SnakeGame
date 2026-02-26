@@ -187,6 +187,19 @@
         .store-card button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
         .store-back { margin-top: 1rem; }
 
+        .cart-list { width: 100%; max-width: 320px; margin: 0.5rem 0; }
+        .cart-item { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .cart-item-info { flex: 1; min-width: 80px; }
+        .cart-item-price { color: var(--gold); font-weight: 600; }
+        .cart-item-qty { display: flex; align-items: center; gap: 0.25rem; }
+        .qty-btn { width: 28px; height: 28px; padding: 0; font-size: 1rem; line-height: 1; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; font-family: inherit; }
+        .qty-btn:hover { background: var(--border); }
+        .qty-num { min-width: 1.5rem; text-align: center; }
+        .cart-item-remove { padding: 0.25rem 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--danger); background: transparent; color: var(--danger); cursor: pointer; font-family: inherit; }
+        .cart-item-remove:hover { background: var(--danger); color: var(--bg); }
+        .cart-total { font-weight: 600; margin: 0.5rem 0; }
+        #btnCheckout { margin-top: 0.5rem; }
+
         /* Toast */
         .toast {
             position: fixed;
@@ -257,6 +270,10 @@
         <div class="store-grid" id="storeLives"></div>
         <p class="store-section">Skins</p>
         <div class="store-grid" id="storeSkins"></div>
+        <p class="store-section">Cart <span id="cartCount">(0)</span></p>
+        <div id="cartList" class="cart-list"></div>
+        <p class="cart-total">Total: <span id="cartTotal">0</span> 🪙</p>
+        <button class="btn btn-primary" id="btnCheckout" disabled>Create order</button>
         <button class="btn btn-secondary store-back" id="btnStoreBack">Back</button>
     </div>
 
@@ -323,6 +340,22 @@
                 body: JSON.stringify(body)
             });
             return r.json();
+        }
+        async function apiPatch(path, body) {
+            const r = await fetch(API.base + path, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) { const e = new Error(data.error || 'Request failed'); e.json = data; throw e; }
+            return data;
+        }
+        async function apiDelete(path) {
+            const r = await fetch(API.base + path, { method: 'DELETE' });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) { const e = new Error(data.error || 'Request failed'); e.json = data; throw e; }
+            return data;
         }
 
         async function loadPlayer() {
@@ -526,74 +559,13 @@
             document.getElementById('pauseOverlay').classList.toggle('visible', state.paused);
         }
 
-        function renderStore() {
-            document.getElementById('storeCoins').textContent = state.balance;
-            const livesEl = document.getElementById('storeLives');
-            livesEl.innerHTML = `
-                <div class="store-card">
-                    <div class="preview" style="background: linear-gradient(135deg, #ff4757, #ff6b81);"></div>
-                    <div class="name">Extra Life</div>
-                    <div class="price">50 🪙</div>
-                    <button id="buyLife">Buy</button>
-                </div>`;
-            document.getElementById('buyLife').onclick = () => purchase('extra_life', 50, () => { state.extraLives++; toast('Extra life purchased!', 'success'); loadPlayer(); renderStore(); });
-
-            const skinsEl = document.getElementById('storeSkins');
-            skinsEl.innerHTML = Object.entries(skins).map(([id, s]) => {
-                const owned = state.ownedSkins.includes(id);
-                const equipped = state.equippedSkin === id;
-                const priceText = s.price === 0 ? 'Free' : s.price + ' 🪙';
-                return `
-                    <div class="store-card ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
-                        <div class="preview" style="background: linear-gradient(135deg, ${s.head}, ${s.body});"></div>
-                        <div class="name">${s.name}</div>
-                        <div class="price ${s.price === 0 ? 'free' : ''}">${priceText}</div>
-                        ${!owned ? `<button id="buy-${id}" ${state.balance < s.price ? 'disabled' : ''}>Buy</button>` : `<button class="secondary" id="equip-${id}" ${equipped ? 'disabled' : ''}>${equipped ? 'Equipped' : 'Equip'}</button>`}
-                    </div>`;
-            }).join('');
-
-            Object.keys(skins).forEach(id => {
-                const s = skins[id];
-                const owned = state.ownedSkins.includes(id);
-                const equipped = state.equippedSkin === id;
-                const buyBtn = document.getElementById('buy-' + id);
-                const equipBtn = document.getElementById('equip-' + id);
-                if (buyBtn) buyBtn.onclick = () => purchase(id, s.price, () => { loadPlayer(); renderStore(); toast('Skin purchased!', 'success'); });
-                if (equipBtn && !equipped) equipBtn.onclick = async () => {
-                    try {
-                        await apiPost('/api/equip', { skinId: id });
-                        state.equippedSkin = id;
-                        renderStore();
-                        toast('Skin equipped!', 'success');
-                    } catch (e) { toast('Could not equip', 'error'); }
-                };
-            });
-        }
-
-        async function purchase(itemId, cost, onSuccess) {
-            if (state.balance < cost) { toast('Not enough coins', 'error'); return; }
-            try {
-                const res = await apiPost('/api/checkout', { itemId });
-                if (res.Status === 'Success') {
-                    state.balance = res.Balance ?? state.balance;
-                    state.ownedSkins = res.OwnedSkins ?? state.ownedSkins;
-                    if (res.Item && res.Item.startsWith('skin_')) state.equippedSkin = res.Item;
-                    onSuccess();
-                } else {
-                    toast(res.Message || 'Purchase failed', 'error');
-                }
-            } catch (e) {
-                toast('Network error', 'error');
-            }
-        }
-
         document.getElementById('btnPlay').onclick = () => { loadPlayer(); startGame(); };
-        document.getElementById('btnStore').onclick = async () => { await loadPlayer(); renderStore(); showScreen('storeScreen'); };
+        document.getElementById('btnStore').onclick = async () => { await loadPlayer(); if (typeof renderStore === 'function') renderStore(); showScreen('storeScreen'); };
         document.getElementById('btnStoreInGame').onclick = async () => {
             state.paused = true;
             document.getElementById('pauseOverlay').classList.add('visible');
             await loadPlayer();
-            renderStore();
+            if (typeof renderStore === 'function') renderStore();
             showScreen('storeScreen');
         };
         document.getElementById('btnStoreBack').onclick = () => {
@@ -606,14 +578,15 @@
         document.getElementById('btnPause').onclick = togglePause;
         document.getElementById('btnRetry').onclick = () => { loadPlayer(); startGame(); };
         document.getElementById('btnMenuFromGameOver').onclick = () => showScreen('menu');
-        document.getElementById('btnStoreFromGameOver').onclick = async () => { await loadPlayer(); renderStore(); showScreen('storeScreen'); };
+        document.getElementById('btnStoreFromGameOver').onclick = async () => { await loadPlayer(); if (typeof renderStore === 'function') renderStore(); showScreen('storeScreen'); };
         document.getElementById('btnBuyLife').onclick = async () => {
             if (state.balance < 50) { toast('Not enough coins', 'error'); return; }
             try {
-                const res = await apiPost('/api/checkout', { itemId: 'extra_life' });
+                await apiPost('/api/user/cart/items', { itemId: 'extra_life' });
+                const res = await apiPost('/api/user/orders', {});
                 if (res.Status === 'Success') {
                     state.balance = res.Balance ?? state.balance;
-                    state.extraLives++;
+                    state.extraLives = Math.max(0, Number(res.ExtraLives) || 0);
                     toast('Extra life purchased! Continue with 1 life.', 'success');
                     loadPlayer();
                     document.getElementById('btnBuyLife').style.display = 'none';
@@ -628,5 +601,6 @@
 
         document.getElementById('highScore').textContent = state.highScore;
     </script>
+    <script src="js/store.js"></script>
 </body>
 </html>
