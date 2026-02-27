@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// Test the idempotency cache functions.
 func TestGetIdempotency_EmptyKey(t *testing.T) {
 	status, body, ok := getIdempotency("")
 	if ok {
@@ -14,6 +15,7 @@ func TestGetIdempotency_EmptyKey(t *testing.T) {
 	}
 }
 
+// Test idempotency roundtrip: set a key, get it, check it's the same.
 func TestSetGetIdempotency_RoundTrip(t *testing.T) {
 	key := "test-key-roundtrip-1"
 	statusCode := 200
@@ -38,6 +40,7 @@ func TestSetGetIdempotency_RoundTrip(t *testing.T) {
 	}
 }
 
+// Test idempotency with unknown key: should return ok=false.
 func TestGetIdempotency_UnknownKey(t *testing.T) {
 	status, body, ok := getIdempotency("nonexistent-key-12345")
 	if ok {
@@ -48,6 +51,7 @@ func TestGetIdempotency_UnknownKey(t *testing.T) {
 	}
 }
 
+// Test idempotency overwrite: should overwrite the key with the new status and body.
 func TestSetIdempotency_Overwrite(t *testing.T) {
 	key := "test-key-overwrite"
 	setIdempotency(key, 200, []byte(`"first"`))
@@ -65,6 +69,7 @@ func TestSetIdempotency_Overwrite(t *testing.T) {
 	}
 }
 
+// Test idempotency empty key: should ignore the key and return ok=false.
 func TestSetIdempotency_EmptyKeyIgnored(t *testing.T) {
 	setIdempotency("", 200, []byte("x"))
 	// Should not panic; get with empty key still returns false

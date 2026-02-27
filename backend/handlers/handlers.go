@@ -17,7 +17,7 @@ const coinsPerScore = 2 // coins per 10 points
 const idempotencyTTL = 24 * time.Hour
 
 var (
-	playerMu sync.RWMutex
+	playerMu sync.RWMutex // protects player field
 	player   = struct {
 		Balance      int      `json:"Balance"`
 		OwnedSkins   []string `json:"OwnedSkins"`
@@ -28,7 +28,7 @@ var (
 		OwnedSkins:   []string{"default"},
 		EquippedSkin: "default",
 	}
-	idempotencyMu    sync.RWMutex
+	idempotencyMu    sync.RWMutex // protects idempotencyCache field		
 	idempotencyCache = make(map[string]*idempotencyEntry)
 )
 
