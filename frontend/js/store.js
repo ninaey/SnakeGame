@@ -69,11 +69,9 @@ function renderCart() {
 
 async function renderStore() {
     document.getElementById('storeCoins').textContent = state.balance;
+    // LIVES section: only Extra Life (Speed Boost, Shield, Score Multiplier removed)
     const consumables = [
-        { id: 'extra_life', name: 'Extra Life', price: 50, color: '135deg, #ff4757, #ff6b81' },
-        { id: 'speed_boost', name: 'Speed Boost', price: 30, color: '135deg, #00d4aa, #00a080' },
-        { id: 'shield', name: 'Shield', price: 40, color: '135deg, #3498db, #2980b9' },
-        { id: 'score_multiplier', name: 'Score Multiplier', price: 35, color: '135deg, #ffc107, #f7931e' }
+        { id: 'extra_life', name: 'Extra Life', price: 50, color: '135deg, #ff4757, #ff6b81' }
     ];
     const livesEl = document.getElementById('storeLives');
     livesEl.innerHTML = consumables.map(c =>

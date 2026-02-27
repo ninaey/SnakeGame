@@ -56,10 +56,7 @@ var (
 
 	// LifeItems catalog: id -> LifeItem (consumables that can have quantity in cart)
 	LifeItems = map[string]LifeItem{
-		"extra_life":       {ID: "extra_life", Name: "Extra Life", Price: 50},
-		"speed_boost":      {ID: "speed_boost", Name: "Speed Boost", Price: 30},
-		"shield":           {ID: "shield", Name: "Shield", Price: 40},
-		"score_multiplier": {ID: "score_multiplier", Name: "Score Multiplier", Price: 35},
+		"extra_life": {ID: "extra_life", Name: "Extra Life", Price: 50},
 	}
 )
 
