@@ -1,20 +1,22 @@
 /**
- * Game module: snake game logic, canvas rendering, game loop.
- * Depends on globals: state, API, toast, showScreen, getSkin (from store.js)
+ * game.js — Snake game logic, canvas rendering, game loop.
+ * Depends on globals defined in index.html: state, skins, getSkin, toast, showScreen, apiPost, loadPlayer
  */
 
-const box = 20;
+const box      = 20;
 const gridSize = 400;
 const gridCells = gridSize / box;
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
+
+// ─── Drawing helpers ──────────────────────────────────────────────────────────
 
 function directionOffset(d) {
-    if (d === 'LEFT') return [-1, 0];
-    if (d === 'RIGHT') return [1, 0];
-    if (d === 'UP') return [0, -1];
-    if (d === 'DOWN') return [0, 1];
+    if (d === 'LEFT')  return [-1,  0];
+    if (d === 'RIGHT') return [ 1,  0];
+    if (d === 'UP')    return [ 0, -1];
+    if (d === 'DOWN')  return [ 0,  1];
     return [0, 0];
 }
 
@@ -35,11 +37,10 @@ function roundRect(ctx, x, y, w, h, r) {
 
 function drawSnake() {
     const skin = getSkin(state.equippedSkin);
-    const isGradient = skin.gradient;
     state.snake.forEach((seg, i) => {
         const isHead = i === 0;
         let fill = isHead ? skin.head : skin.body;
-        if (isGradient) {
+        if (skin.gradient) {
             const t = i / Math.max(state.snake.length, 1);
             const r = Math.floor(255 * (1 - t) + 255 * t * 0.76);
             const g = Math.floor(107 * (1 - t) + 212 * t * 0.5);
@@ -51,24 +52,14 @@ function drawSnake() {
         if (isHead) {
             ctx.fillStyle = skin.eye || '#1a1a20';
             const [dx, dy] = directionOffset(state.direction);
-            const ex = seg.x + box / 2 + (dx * 6);
-            const ey = seg.y + box / 2 + (dy * 6);
+            const ex = seg.x + box / 2 + dx * 6;
+            const ey = seg.y + box / 2 + dy * 6;
             ctx.beginPath();
             ctx.arc(ex - 3, ey - 3, 3, 0, Math.PI * 2);
             ctx.arc(ex + 3, ey - 3, 3, 0, Math.PI * 2);
             ctx.fill();
         }
     });
-}
-
-function placeFood() {
-    const used = new Set(state.snake.map(s => `${s.x},${s.y}`));
-    let x, y;
-    do {
-        x = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
-        y = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
-    } while (used.has(`${x},${y}`));
-    state.food = { x, y };
 }
 
 function drawFood() {
@@ -80,63 +71,109 @@ function drawFood() {
     ctx.fill();
 }
 
+// ─── Food placement ───────────────────────────────────────────────────────────
+
+function placeFood() {
+    const used = new Set(state.snake.map(s => `${s.x},${s.y}`));
+    let x, y;
+    do {
+        x = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
+        y = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
+    } while (used.has(`${x},${y}`));
+    state.food = { x, y };
+}
+
+// ─── Game loop ────────────────────────────────────────────────────────────────
+
+function gameStep() {
+    tick();
+    ctx.fillStyle = '#0a0a0c';
+    ctx.fillRect(0, 0, gridSize, gridSize);
+    drawFood();
+    drawSnake();
+}
+
 function tick() {
     if (state.paused) return;
     state.nextDirection = state.nextDirection || state.direction;
     if (!state.nextDirection) return;
+
     const d = state.nextDirection;
     const [dx, dy] = directionOffset(d);
     const head = state.snake[0];
     const nx = head.x + dx * box;
     const ny = head.y + dy * box;
-    state.direction = d;
+    state.direction    = d;
     state.nextDirection = null;
 
-    if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize) {
-        loseLife();
-        return;
-    }
-    if (state.snake.some(s => s.x === nx && s.y === ny)) {
-        loseLife();
-        return;
-    }
+    // Wall collision
+    if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize) { loseLife(); return; }
+    // Self collision
+    if (state.snake.some(s => s.x === nx && s.y === ny)) { loseLife(); return; }
 
     state.snake.unshift({ x: nx, y: ny });
+
     if (nx === state.food.x && ny === state.food.y) {
+        // Ate food
         state.score++;
         document.getElementById('score').textContent = state.score;
+
+        // Speed progression: faster every 5 points (150 → 145 → 140 ... min 50)
+        const baseSpeed        = 150;
+        const decreasePer5     = 5;
+        const minSpeed         = 50;
+        const speedLevel       = Math.floor(state.score / 5);
+        const newSpeed         = Math.max(minSpeed, baseSpeed - speedLevel * decreasePer5);
+
+        document.getElementById('speedDisplay').textContent = newSpeed;
+
+        if (newSpeed !== state.speed) {
+            state.speed = newSpeed;
+            console.log(`⚡ Speed: ${state.speed}ms (Score: ${state.score})`);
+            // Restart interval at new speed
+            if (state.gameLoop) {
+                clearInterval(state.gameLoop);
+                state.gameLoop = setInterval(gameStep, state.speed);
+            }
+        }
+
         placeFood();
     } else {
         state.snake.pop();
     }
 }
 
+// ─── Life / Game over ─────────────────────────────────────────────────────────
+
 function loseLife() {
     clearInterval(state.gameLoop);
     state.gameLoop = null;
+
     if (state.extraLives > 0) {
         state.extraLives--;
         state.lives++;
     }
     state.lives--;
     document.getElementById('lives').textContent = state.lives;
-    if (state.lives <= 0) {
-        gameOver();
-        return;
-    }
-    state.snake = [{ x: 10 * box, y: 10 * box }];
+
+    if (state.lives <= 0) { gameOver(); return; }
+
+    state.snake     = [{ x: 10 * box, y: 10 * box }];
     state.direction = null;
     placeFood();
-    state.gameLoop = setInterval(gameStep, state.speed);
+    state.gameLoop  = setInterval(gameStep, state.speed);
 }
 
 function gameOver() {
     state.gameLoop = null;
     document.getElementById('finalScore').textContent = state.score;
+
     if (state.score > state.highScore) {
         state.highScore = state.score;
         localStorage.setItem('snakeHighScore', String(state.highScore));
+        document.getElementById('highScore').textContent = state.highScore;
     }
+
     (async () => {
         try {
             const res = await apiPost('/api/earn', { score: state.score });
@@ -148,28 +185,27 @@ function gameOver() {
             document.getElementById('coinsEarnedLine').style.display = 'none';
         }
     })();
+
     document.getElementById('btnBuyLife').style.display = state.balance >= 50 ? 'block' : 'none';
     showScreen('gameOverScreen');
 }
 
-function gameStep() {
-    tick();
-    ctx.fillStyle = '#0a0a0c';
-    ctx.fillRect(0, 0, gridSize, gridSize);
-    drawFood();
-    drawSnake();
-}
+// ─── Start / Pause ────────────────────────────────────────────────────────────
 
 function startGame(initialLives) {
-    state.score = 0;
-    state.lives = initialLives !== undefined ? initialLives : 3;
-    state.snake = [{ x: 10 * box, y: 10 * box }];
-    state.direction = null;
+    state.score         = 0;
+    state.speed         = 150;
+    state.lives         = initialLives !== undefined ? initialLives : 3;
+    state.snake         = [{ x: 10 * box, y: 10 * box }];
+    state.direction     = null;
     state.nextDirection = null;
-    state.paused = false;
-    document.getElementById('score').textContent = '0';
-    document.getElementById('lives').textContent = state.lives;
+    state.paused        = false;
+
+    document.getElementById('score').textContent        = '0';
+    document.getElementById('lives').textContent        = state.lives;
+    document.getElementById('speedDisplay').textContent = state.speed;
     document.getElementById('pauseOverlay').classList.remove('visible');
+
     placeFood();
     if (state.gameLoop) clearInterval(state.gameLoop);
     state.gameLoop = setInterval(gameStep, state.speed);
@@ -181,6 +217,8 @@ function togglePause() {
     document.getElementById('pauseOverlay').classList.toggle('visible', state.paused);
 }
 
+// ─── Keyboard input ───────────────────────────────────────────────────────────
+
 document.addEventListener('keydown', e => {
     if (state.screen !== 'gameScreen') return;
     const arrow = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key);
@@ -188,8 +226,8 @@ document.addEventListener('keydown', e => {
     if (e.key === ' ') { togglePause(); return; }
     if (state.paused) return;
     const dir = state.nextDirection || state.direction;
-    if (e.key === 'ArrowLeft' && dir !== 'RIGHT') state.nextDirection = 'LEFT';
-    else if (e.key === 'ArrowUp' && dir !== 'DOWN') state.nextDirection = 'UP';
-    else if (e.key === 'ArrowRight' && dir !== 'LEFT') state.nextDirection = 'RIGHT';
-    else if (e.key === 'ArrowDown' && dir !== 'UP') state.nextDirection = 'DOWN';
+    if      (e.key === 'ArrowLeft'  && dir !== 'RIGHT') state.nextDirection = 'LEFT';
+    else if (e.key === 'ArrowUp'    && dir !== 'DOWN')  state.nextDirection = 'UP';
+    else if (e.key === 'ArrowRight' && dir !== 'LEFT')  state.nextDirection = 'RIGHT';
+    else if (e.key === 'ArrowDown'  && dir !== 'UP')    state.nextDirection = 'DOWN';
 });
