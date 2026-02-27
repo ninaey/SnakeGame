@@ -162,7 +162,13 @@ function gameStep() {
 
 function startGame(initialLives) {
     state.score = 0;
-    state.lives = initialLives !== undefined ? initialLives : 3;
+    if (initialLives !== undefined) {
+        state.lives = initialLives;
+        state.extraLives = 0;
+    } else {
+        state.lives = 3 + (state.extraLives || 0);
+        state.extraLives = 0;
+    }
     state.snake = [{ x: 10 * box, y: 10 * box }];
     state.direction = null;
     state.nextDirection = null;

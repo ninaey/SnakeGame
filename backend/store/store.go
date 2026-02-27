@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	mu   sync.RWMutex
-	cart []models.CartItem
+	mu   sync.RWMutex // protects the cart field (cart items)
+	cart []models.CartItem // cart items
 )
 
 // ErrUnknownItem is returned when adding an item not in the catalog.
@@ -38,9 +38,9 @@ func AddToCart(itemID string) error {
 	if itemID == "default" && price == 0 {
 		return ErrDefaultSkin
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	for i := range cart {
+	mu.Lock() // protect the cart field
+	defer mu.Unlock() // unlock the cart field
+	for i := range cart { // check if the item is already in the cart
 		if cart[i].ItemID == itemID {
 			cart[i].Quantity++
 			return nil

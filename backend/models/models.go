@@ -20,8 +20,8 @@ type LifeItem struct {
 type ItemKind int
 
 const (
-	ItemKindSkin ItemKind = iota
-	ItemKindLife
+	ItemKindSkin ItemKind = iota // item kind skin
+	ItemKindLife // item kind life
 )
 
 // Item is a generic purchasable (skin or life item) for catalog lookups.
@@ -43,10 +43,10 @@ type CartItem struct {
 }
 
 var (
-	mu sync.RWMutex
+	mu sync.RWMutex // protects the catalog maps
 
 	// Skins catalog: id -> Skin
-	Skins = map[string]Skin{
+	Skins = map[string]Skin{ // default skin, gold skin, rainbow skin, ice skin, fire skin
 		"default":      {ID: "default", Name: "Default", Price: 0},
 		"skin_gold":    {ID: "skin_gold", Name: "Gold", Price: 100},
 		"skin_rainbow": {ID: "skin_rainbow", Name: "Rainbow", Price: 100},

@@ -277,7 +277,7 @@
         <button class="btn btn-secondary store-back" id="btnStoreBack">Back</button>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast"></div> 
 
     <script>
         const API = { base: '' };
@@ -364,10 +364,12 @@
                 state.balance = p.Balance ?? 0;
                 state.ownedSkins = p.OwnedSkins || ['default'];
                 state.equippedSkin = p.EquippedSkin || 'default';
+                state.extraLives = Math.max(0, Number(p.ExtraLives) || 0);
             } catch (e) {
                 state.balance = 0;
                 state.ownedSkins = ['default'];
                 state.equippedSkin = 'default';
+                state.extraLives = 0;
             }
         }
 
@@ -527,7 +529,15 @@
 
         function startGame(initialLives) {
             state.score = 0;
-            state.lives = initialLives !== undefined ? initialLives : 3;
+            if (initialLives !== undefined) {
+                // Continuing after buying life on game over: use exactly that many lives
+                state.lives = initialLives;
+                state.extraLives = 0;
+            } else {
+                // Fresh game: base 3 lives + any extra lives bought in store
+                state.lives = 3 + (state.extraLives || 0);
+                state.extraLives = 0;
+            }
             state.snake = [{ x: 10 * box, y: 10 * box }];
             state.direction = null;
             state.nextDirection = null;
