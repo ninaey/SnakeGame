@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// ErrTimeout is returned when the payment gateway times out (e.g. for simulation).
+// ErrTimeout is returned when the payment gateway times out.
 var ErrTimeout = errors.New("payment gateway timeout")
 
 // Gateway performs the actual charge. In production this would call an external API.

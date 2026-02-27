@@ -242,7 +242,7 @@
         <button class="btn btn-secondary store-back" id="btnStoreBack">Back</button>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast"></div> 
 
     <script>
         // ─── Globals ────────────────────────────────────────────────────────────────
@@ -336,10 +336,12 @@
                 state.balance      = p.Balance      ?? 0;
                 state.ownedSkins   = p.OwnedSkins   || ['default'];
                 state.equippedSkin = p.EquippedSkin || 'default';
+                state.extraLives = Math.max(0, Number(p.ExtraLives) || 0);
             } catch (e) {
                 state.balance      = 0;
                 state.ownedSkins   = ['default'];
                 state.equippedSkin = 'default';
+                state.extraLives = 0;
             }
         }
 
