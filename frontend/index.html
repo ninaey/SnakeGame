@@ -33,14 +33,7 @@
             justify-content: center;
             overflow-x: hidden;
         }
-        .screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-            padding: 2rem;
-            max-width: 480px;
-        }
+        .screen { display: none; flex-direction: column; align-items: center; gap: 1.5rem; padding: 2rem; max-width: 480px; }
         .screen.active { display: flex; }
 
         /* Menu */
@@ -68,16 +61,9 @@
             transition: transform 0.1s, box-shadow 0.2s;
         }
         .btn:active { transform: scale(0.98); }
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), #00a080);
-            color: var(--bg);
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #00a080); color: var(--bg); }
         .btn-primary:hover { box-shadow: 0 6px 24px rgba(0, 212, 170, 0.35); }
-        .btn-secondary {
-            background: var(--surface2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
+        .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
         .menu-btns { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; }
         .high-score { color: var(--textDim); font-size: 0.9rem; margin-top: 1rem; }
@@ -101,18 +87,8 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
             border: 2px solid var(--border);
         }
-        #game {
-            display: block;
-            width: 400px;
-            height: 400px;
-            background: #0a0a0c;
-        }
-        .game-actions {
-            display: flex;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 400px;
-        }
+        #game { display: block; width: 400px; height: 400px; background: #0a0a0c; }
+        .game-actions { display: flex; gap: 0.75rem; width: 100%; max-width: 400px; }
         .game-actions .btn { flex: 1; }
 
         /* Pause overlay */
@@ -137,13 +113,7 @@
         .game-over-actions { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 280px; margin-top: 0.5rem; }
 
         /* Store */
-        .store-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 0.5rem;
-        }
+        .store-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem; }
         .store-title { font-size: 1.5rem; font-weight: 800; }
         .coins-badge {
             display: flex;
@@ -156,13 +126,7 @@
             color: var(--gold);
         }
         .store-section { font-size: 0.85rem; color: var(--textDim); text-transform: uppercase; letter-spacing: 0.08em; margin: 1.25rem 0 0.5rem; width: 100%; max-width: 320px; }
-        .store-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            width: 100%;
-            max-width: 320px;
-        }
+        .store-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; width: 100%; max-width: 320px; }
         .store-card {
             background: var(--surface2);
             border: 2px solid var(--border);
@@ -173,12 +137,7 @@
         }
         .store-card.owned { border-color: var(--success); }
         .store-card.equipped { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-        .store-card .preview {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 0.75rem;
-            border-radius: 10px;
-        }
+        .store-card .preview { width: 64px; height: 64px; margin: 0 auto 0.75rem; border-radius: 10px; }
         .store-card .name { font-weight: 600; margin-bottom: 0.25rem; }
         .store-card .price { font-size: 0.9rem; color: var(--gold); margin-bottom: 0.75rem; }
         .store-card .price.free { color: var(--textDim); }
@@ -221,6 +180,8 @@
     </style>
 </head>
 <body>
+
+    <!-- MENU -->
     <div id="menu" class="screen active">
         <div class="logo">Snake Pro</div>
         <p class="subtitle">Store Edition — Eat, grow, and customize.</p>
@@ -231,10 +192,12 @@
         <p class="high-score">Best score: <span id="highScore">0</span></p>
     </div>
 
+    <!-- GAME -->
     <div id="gameScreen" class="screen">
         <div class="game-hud">
             <div class="hud-item"><span class="icon">⭐</span> <span id="score">0</span></div>
             <div class="hud-item"><span class="icon">❤️</span> <span id="lives">3</span></div>
+            <div class="hud-item"><span class="icon">⚡</span> <span id="speedDisplay">150</span>ms</div>
         </div>
         <div class="game-wrap">
             <canvas id="game" width="400" height="400"></canvas>
@@ -249,6 +212,7 @@
         </div>
     </div>
 
+    <!-- GAME OVER -->
     <div id="gameOverScreen" class="screen">
         <h2 class="game-over-title">Game Over</h2>
         <p class="game-over-score">Score: <strong id="finalScore">0</strong></p>
@@ -261,6 +225,7 @@
         </div>
     </div>
 
+    <!-- STORE -->
     <div id="storeScreen" class="screen">
         <div class="store-header">
             <span class="store-title">Store</span>
@@ -280,17 +245,16 @@
     <div id="toast" class="toast"></div> 
 
     <script>
+        // ─── Globals ────────────────────────────────────────────────────────────────
+
         const API = { base: '' };
-        const box = 20;
-        const gridSize = 400;
-        const gridCells = gridSize / box;
 
         let state = {
             screen: 'menu',
             score: 0,
             lives: 3,
             extraLives: 0,
-            speed: 200,
+            speed: 150,
             snake: [],
             food: { x: 0, y: 0 },
             direction: null,
@@ -304,15 +268,14 @@
         };
 
         const skins = {
-            default: { name: 'Default', price: 0, head: '#2ed573', body: '#27ae60', eye: '#1a1a20' },
-            skin_gold: { name: 'Gold', price: 100, head: '#ffd700', body: '#daa520', eye: '#1a1a20' },
-            skin_rainbow: { name: 'Rainbow', price: 100, head: '#ff6b9d', body: '#c44dff', eye: '#1a1a20', gradient: true },
-            skin_ice: { name: 'Ice', price: 100, head: '#87ceeb', body: '#b0e0e6', eye: '#1a1a20' },
-            skin_fire: { name: 'Fire', price: 100, head: '#ff6b35', body: '#f7931e', eye: '#1a1a20' }
+            default:      { name: 'Default', price: 0,   head: '#2ed573', body: '#27ae60', eye: '#1a1a20' },
+            skin_gold:    { name: 'Gold',    price: 100,  head: '#ffd700', body: '#daa520', eye: '#1a1a20' },
+            skin_rainbow: { name: 'Rainbow', price: 100,  head: '#ff6b9d', body: '#c44dff', eye: '#1a1a20', gradient: true },
+            skin_ice:     { name: 'Ice',     price: 100,  head: '#87ceeb', body: '#b0e0e6', eye: '#1a1a20' },
+            skin_fire:    { name: 'Fire',    price: 100,  head: '#ff6b35', body: '#f7931e', eye: '#1a1a20' }
         };
 
-        const canvas = document.getElementById('game');
-        const ctx = canvas.getContext('2d');
+        // ─── Helpers ─────────────────────────────────────────────────────────────────
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -326,13 +289,20 @@
             t.textContent = message;
             t.className = 'toast show ' + type;
             clearTimeout(toast._id);
-            toast._id = setTimeout(() => { t.classList.remove('show'); }, 2500);
+            toast._id = setTimeout(() => t.classList.remove('show'), 2500);
         }
+
+        function getSkin(id) {
+            return skins[id] || skins.default;
+        }
+
+        // ─── API ──────────────────────────────────────────────────────────────────────
 
         async function apiGet(path) {
             const r = await fetch(API.base + path);
             return r.json();
         }
+
         async function apiPost(path, body) {
             const r = await fetch(API.base + path, {
                 method: 'POST',
@@ -341,6 +311,7 @@
             });
             return r.json();
         }
+
         async function apiPatch(path, body) {
             const r = await fetch(API.base + path, {
                 method: 'PATCH',
@@ -351,6 +322,7 @@
             if (!r.ok) { const e = new Error(data.error || 'Request failed'); e.json = data; throw e; }
             return data;
         }
+
         async function apiDelete(path) {
             const r = await fetch(API.base + path, { method: 'DELETE' });
             const data = await r.json().catch(() => ({}));
@@ -361,216 +333,28 @@
         async function loadPlayer() {
             try {
                 const p = await apiGet('/api/player');
-                state.balance = p.Balance ?? 0;
-                state.ownedSkins = p.OwnedSkins || ['default'];
+                state.balance      = p.Balance      ?? 0;
+                state.ownedSkins   = p.OwnedSkins   || ['default'];
                 state.equippedSkin = p.EquippedSkin || 'default';
                 state.extraLives = Math.max(0, Number(p.ExtraLives) || 0);
             } catch (e) {
-                state.balance = 0;
-                state.ownedSkins = ['default'];
+                state.balance      = 0;
+                state.ownedSkins   = ['default'];
                 state.equippedSkin = 'default';
                 state.extraLives = 0;
             }
         }
 
-        function getSkin(id) {
-            return skins[id] || skins.default;
-        }
-
-        function drawSnake() {
-            const skin = getSkin(state.equippedSkin);
-            const isGradient = skin.gradient;
-            state.snake.forEach((seg, i) => {
-                const isHead = i === 0;
-                let fill = isHead ? skin.head : skin.body;
-                if (isGradient) {
-                    const t = i / Math.max(state.snake.length, 1);
-                    const r = Math.floor(255 * (1 - t) + 255 * t * 0.76);
-                    const g = Math.floor(107 * (1 - t) + 212 * t * 0.5);
-                    const b = Math.floor(115 * (1 - t) + 170 * t);
-                    fill = `rgb(${r},${g},${b})`;
-                }
-                ctx.fillStyle = fill;
-                roundRect(ctx, seg.x + 1, seg.y + 1, box - 2, box - 2, 6);
-                if (isHead) {
-                    ctx.fillStyle = skin.eye || '#1a1a20';
-                    const [dx, dy] = directionOffset(state.direction);
-                    const ex = seg.x + box / 2 + (dx * 6);
-                    const ey = seg.y + box / 2 + (dy * 6);
-                    ctx.beginPath();
-                    ctx.arc(ex - 3, ey - 3, 3, 0, Math.PI * 2);
-                    ctx.arc(ex + 3, ey - 3, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            });
-        }
-
-        function directionOffset(d) {
-            if (d === 'LEFT') return [-1, 0];
-            if (d === 'RIGHT') return [1, 0];
-            if (d === 'UP') return [0, -1];
-            if (d === 'DOWN') return [0, 1];
-            return [0, 0];
-        }
-
-        function roundRect(ctx, x, y, w, h, r) {
-            ctx.beginPath();
-            ctx.moveTo(x + r, y);
-            ctx.lineTo(x + w - r, y);
-            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-            ctx.lineTo(x + w, y + h - r);
-            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-            ctx.lineTo(x + r, y + h);
-            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-            ctx.lineTo(x, y + r);
-            ctx.quadraticCurveTo(x, y, x + r, y);
-            ctx.closePath();
-            ctx.fill();
-        }
-
-        function placeFood() {
-            const used = new Set(state.snake.map(s => `${s.x},${s.y}`));
-            let x, y;
-            do {
-                x = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
-                y = (Math.floor(Math.random() * (gridCells - 2)) + 1) * box;
-            } while (used.has(`${x},${y}`));
-            state.food = { x, y };
-        }
-
-        function drawFood() {
-            ctx.fillStyle = '#ff4757';
-            roundRect(ctx, state.food.x + 2, state.food.y + 2, box - 4, box - 4, 8);
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.beginPath();
-            ctx.arc(state.food.x + box/2, state.food.y + 6, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        function tick() {
-            if (state.paused) return;
-            state.nextDirection = state.nextDirection || state.direction;
-            if (!state.nextDirection) return;
-            const d = state.nextDirection;
-            const [dx, dy] = directionOffset(d);
-            const head = state.snake[0];
-            let nx = head.x + dx * box;
-            let ny = head.y + dy * box;
-            state.direction = d;
-            state.nextDirection = null;
-
-            if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize) {
-                loseLife();
-                return;
-            }
-            if (state.snake.some(s => s.x === nx && s.y === ny)) {
-                loseLife();
-                return;
-            }
-
-            state.snake.unshift({ x: nx, y: ny });
-            if (nx === state.food.x && ny === state.food.y) {
-                state.score++;
-                document.getElementById('score').textContent = state.score;
-                placeFood();
-            } else {
-                state.snake.pop();
-            }
-        }
-
-        function loseLife() {
-            clearInterval(state.gameLoop);
-            state.gameLoop = null;
-            if (state.extraLives > 0) {
-                state.extraLives--;
-                state.lives++;
-            }
-            state.lives--;
-            document.getElementById('lives').textContent = state.lives;
-            if (state.lives <= 0) {
-                gameOver();
-                return;
-            }
-            state.snake = [{ x: 10 * box, y: 10 * box }];
-            state.direction = null;
-            placeFood();
-            state.gameLoop = setInterval(gameStep, state.speed);
-        }
-
-        function gameOver() {
-            state.gameLoop = null;
-            document.getElementById('finalScore').textContent = state.score;
-            if (state.score > state.highScore) {
-                state.highScore = state.score;
-                localStorage.setItem('snakeHighScore', String(state.highScore));
-            }
-            (async () => {
-                try {
-                    const res = await apiPost('/api/earn', { score: state.score });
-                    const earned = res.earned ?? 0;
-                    state.balance = res.balance ?? state.balance;
-                    document.getElementById('coinsEarned').textContent = earned;
-                    document.getElementById('coinsEarnedLine').style.display = 'block';
-                } catch (e) {
-                    document.getElementById('coinsEarnedLine').style.display = 'none';
-                }
-            })();
-            document.getElementById('btnBuyLife').style.display = state.balance >= 50 ? 'block' : 'none';
-            showScreen('gameOverScreen');
-        }
-
-        function gameStep() {
-            tick();
-            ctx.fillStyle = '#0a0a0c';
-            ctx.fillRect(0, 0, gridSize, gridSize);
-            drawFood();
-            drawSnake();
-        }
-
-        function startGame(initialLives) {
-            state.score = 0;
-            if (initialLives !== undefined) {
-                // Continuing after buying life on game over: use exactly that many lives
-                state.lives = initialLives;
-                state.extraLives = 0;
-            } else {
-                // Fresh game: base 3 lives + any extra lives bought in store
-                state.lives = 3 + (state.extraLives || 0);
-                state.extraLives = 0;
-            }
-            state.snake = [{ x: 10 * box, y: 10 * box }];
-            state.direction = null;
-            state.nextDirection = null;
-            state.paused = false;
-            document.getElementById('score').textContent = '0';
-            document.getElementById('lives').textContent = state.lives;
-            document.getElementById('pauseOverlay').classList.remove('visible');
-            placeFood();
-            if (state.gameLoop) clearInterval(state.gameLoop);
-            state.gameLoop = setInterval(gameStep, state.speed);
-            showScreen('gameScreen');
-        }
-
-        document.addEventListener('keydown', e => {
-            if (state.screen !== 'gameScreen') return;
-            const arrow = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key);
-            if (e.key === ' ' || arrow) e.preventDefault();
-            if (e.key === ' ') { togglePause(); return; }
-            if (state.paused) return;
-            const dir = state.nextDirection || state.direction;
-            if (e.key === 'ArrowLeft' && dir !== 'RIGHT') state.nextDirection = 'LEFT';
-            else if (e.key === 'ArrowUp' && dir !== 'DOWN') state.nextDirection = 'UP';
-            else if (e.key === 'ArrowRight' && dir !== 'LEFT') state.nextDirection = 'RIGHT';
-            else if (e.key === 'ArrowDown' && dir !== 'UP') state.nextDirection = 'DOWN';
-        });
-
-        function togglePause() {
-            state.paused = !state.paused;
-            document.getElementById('pauseOverlay').classList.toggle('visible', state.paused);
-        }
+        // ─── Button handlers ──────────────────────────────────────────────────────────
 
         document.getElementById('btnPlay').onclick = () => { loadPlayer(); startGame(); };
-        document.getElementById('btnStore').onclick = async () => { await loadPlayer(); if (typeof renderStore === 'function') renderStore(); showScreen('storeScreen'); };
+
+        document.getElementById('btnStore').onclick = async () => {
+            await loadPlayer();
+            if (typeof renderStore === 'function') renderStore();
+            showScreen('storeScreen');
+        };
+
         document.getElementById('btnStoreInGame').onclick = async () => {
             state.paused = true;
             document.getElementById('pauseOverlay').classList.add('visible');
@@ -578,24 +362,37 @@
             if (typeof renderStore === 'function') renderStore();
             showScreen('storeScreen');
         };
+
         document.getElementById('btnStoreBack').onclick = () => {
-            if (state.screen === 'storeScreen') {
-                if (state.gameLoop) { showScreen('gameScreen'); state.paused = false; document.getElementById('pauseOverlay').classList.remove('visible'); }
-                else showScreen('menu');
+            if (state.gameLoop) {
+                showScreen('gameScreen');
+                state.paused = false;
+                document.getElementById('pauseOverlay').classList.remove('visible');
+            } else {
+                showScreen('menu');
             }
         };
-        document.getElementById('btnResume').onclick = togglePause;
-        document.getElementById('btnPause').onclick = togglePause;
+
+        document.getElementById('btnResume').onclick = () => togglePause();
+        document.getElementById('btnPause').onclick  = () => togglePause();
+
         document.getElementById('btnRetry').onclick = () => { loadPlayer(); startGame(); };
+
         document.getElementById('btnMenuFromGameOver').onclick = () => showScreen('menu');
-        document.getElementById('btnStoreFromGameOver').onclick = async () => { await loadPlayer(); if (typeof renderStore === 'function') renderStore(); showScreen('storeScreen'); };
+
+        document.getElementById('btnStoreFromGameOver').onclick = async () => {
+            await loadPlayer();
+            if (typeof renderStore === 'function') renderStore();
+            showScreen('storeScreen');
+        };
+
         document.getElementById('btnBuyLife').onclick = async () => {
             if (state.balance < 50) { toast('Not enough coins', 'error'); return; }
             try {
                 await apiPost('/api/user/cart/items', { itemId: 'extra_life' });
                 const res = await apiPost('/api/user/orders', {});
                 if (res.Status === 'Success') {
-                    state.balance = res.Balance ?? state.balance;
+                    state.balance    = res.Balance    ?? state.balance;
                     state.extraLives = Math.max(0, Number(res.ExtraLives) || 0);
                     toast('Extra life purchased! Continue with 1 life.', 'success');
                     loadPlayer();
@@ -609,8 +406,11 @@
             }
         };
 
+        // Init high score display
         document.getElementById('highScore').textContent = state.highScore;
     </script>
-    <script src="js/store.js?v=1"></script>
+
+    <script src="js/game.js"></script>
+    <script src="js/store.js"></script>
 </body>
 </html>
