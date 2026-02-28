@@ -249,11 +249,13 @@
 
         const API = { base: '' };
 
+        const DEFAULT_LIVES = 3;
         let state = {
             screen: 'menu',
             score: 0,
-            lives: 3,
+            lives: DEFAULT_LIVES,
             extraLives: 0,
+            defaultLives: DEFAULT_LIVES,
             speed: 150,
             snake: [],
             food: { x: 0, y: 0 },
@@ -347,7 +349,7 @@
 
         // ─── Button handlers ──────────────────────────────────────────────────────────
 
-        document.getElementById('btnPlay').onclick = () => { loadPlayer(); startGame(); };
+        document.getElementById('btnPlay').onclick = async () => { await loadPlayer(); startGame(); };
 
         document.getElementById('btnStore').onclick = async () => {
             await loadPlayer();
@@ -376,7 +378,7 @@
         document.getElementById('btnResume').onclick = () => togglePause();
         document.getElementById('btnPause').onclick  = () => togglePause();
 
-        document.getElementById('btnRetry').onclick = () => { loadPlayer(); startGame(); };
+        document.getElementById('btnRetry').onclick = async () => { await loadPlayer(); startGame(); };
 
         document.getElementById('btnMenuFromGameOver').onclick = () => showScreen('menu');
 

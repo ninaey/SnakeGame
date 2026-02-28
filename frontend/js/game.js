@@ -154,7 +154,7 @@ function loseLife() {
         state.lives++;
     }
     state.lives--;
-    document.getElementById('lives').textContent = state.lives;
+    document.getElementById('lives').textContent = state.lives + state.extraLives;
 
     if (state.lives <= 0) { gameOver(); return; }
 
@@ -195,14 +195,14 @@ function gameOver() {
 function startGame(initialLives) {
     state.score         = 0;
     state.speed         = 150;
-    state.lives         = initialLives !== undefined ? initialLives : 3;
+    state.lives         = initialLives !== undefined ? initialLives : state.defaultLives;
     state.snake         = [{ x: 10 * box, y: 10 * box }];
     state.direction     = null;
     state.nextDirection = null;
     state.paused        = false;
 
     document.getElementById('score').textContent        = '0';
-    document.getElementById('lives').textContent        = state.lives;
+    document.getElementById('lives').textContent        = state.lives + state.extraLives;
     document.getElementById('speedDisplay').textContent = state.speed;
     document.getElementById('pauseOverlay').classList.remove('visible');
 
