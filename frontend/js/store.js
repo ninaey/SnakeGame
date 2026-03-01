@@ -17,11 +17,21 @@ async function loadCart() {
 }
 
 function renderCart() {
+    // UPDATED: Sync the badge on the Store screen
     const itemCount = cartData.items.reduce((n, it) => n + (it.quantity || 1), 0);
-    document.getElementById('cartCount').textContent = '(' + itemCount + ')';
-    document.getElementById('cartTotal').textContent = cartData.total;
+    const badge = document.getElementById('cartCountBadge');
+    if (badge) badge.textContent = '(' + itemCount + ')';
+
+    // UPDATED: Fill the dedicated Cart screen elements
+    const cartCoins = document.getElementById('cartCoinsDisplay');
+    if (cartCoins) cartCoins.textContent = state.balance;
+
+    const totalEl = document.getElementById('cartTotal');
+    if (totalEl) totalEl.textContent = cartData.total;
 
     const listEl = document.getElementById('cartList');
+    if (!listEl) return;
+
     if (cartData.items.length === 0) {
         listEl.innerHTML = '<p class="cart-empty" style="color:var(--textDim);font-size:0.9rem;">Cart is empty</p>';
         document.getElementById('btnCheckout').disabled = true;
@@ -29,113 +39,92 @@ function renderCart() {
     }
 
     document.getElementById('btnCheckout').disabled = state.balance < cartData.total;
+    
     listEl.innerHTML = cartData.items.map(it => {
         const qty = it.quantity ?? 1;
-        const lineTotal = (it.price || 0) * qty;
-        return `<div class="cart-item" data-id="${it.id}">
-            <span class="cart-item-info">${it.name}${qty > 1 ? ' ×' + qty : ''}</span>
-            <span class="cart-item-price">${lineTotal} 🪙</span>
-            <div class="cart-item-qty">
-                <button type="button" class="qty-btn" data-id="${it.id}" data-delta="-1">−</button>
-                <span class="qty-num">${qty}</span>
-                <button type="button" class="qty-btn" data-id="${it.id}" data-delta="1">+</button>
+        return `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div style="font-weight:600;">${it.name || it.itemId}</div>
+                    <div class="cart-item-price">${it.price} 🪙</div>
+                </div>
+                <div class="cart-item-qty">
+                    <button class="qty-btn" onclick="updateQty('${it.itemId}', ${qty - 1})">−</button>
+                    <span class="qty-num">${qty}</span>
+                    <button class="qty-btn" onclick="updateQty('${it.itemId}', ${qty + 1})">+</button>
+                </div>
+                <button class="cart-item-remove" onclick="updateQty('${it.itemId}', 0)">Remove</button>
             </div>
-            <button type="button" class="cart-item-remove" data-id="${it.id}">Remove</button>
-        </div>`;
+        `;
     }).join('');
-
-    listEl.querySelectorAll('.cart-item-remove').forEach(btn => {
-        btn.onclick = async () => {
-            try {
-                await apiDelete('/api/user/cart/items/' + btn.dataset.id);
-                await loadCart();
-                renderCart();
-                toast('Removed from cart', 'success');
-            } catch (e) { toast('Could not remove', 'error'); }
-        };
-    });
-
-    listEl.querySelectorAll('.qty-btn').forEach(btn => {
-        btn.onclick = async () => {
-            const id    = btn.dataset.id;
-            const delta = parseInt(btn.dataset.delta, 10);
-            const it    = cartData.items.find(i => i.id === id);
-            if (!it) return;
-            const newQty = Math.max(1, (it.quantity || 1) + delta);
-            try {
-                await apiPatch('/api/user/cart/items/' + id, { quantity: newQty });
-                await loadCart();
-                renderCart();
-                toast('Cart updated', 'success');
-            } catch (e) { toast('Could not update quantity', 'error'); }
-        };
-    });
 }
 
 async function renderStore() {
     document.getElementById('storeCoins').textContent = state.balance;
-
-    // Lives section
-    const consumables = [
-        { id: 'extra_life', name: 'Extra Life', price: 50, color: '135deg, #ff4757, #ff6b81' }
-    ];
     const livesEl = document.getElementById('storeLives');
-    livesEl.innerHTML = consumables.map(c =>
-        `<div class="store-card">
-            <div class="preview" style="background: linear-gradient(${c.color});"></div>
-            <div class="name">${c.name}</div>
-            <div class="price">${c.price} 🪙</div>
-            <button id="buy-${c.id}">Add to cart</button>
-        </div>`
-    ).join('');
-    consumables.forEach(c => {
-        const btn = document.getElementById('buy-' + c.id);
-        if (btn) btn.onclick = () => addToCart(c.id, c.price);
-    });
-
-    // Skins section
     const skinsEl = document.getElementById('storeSkins');
-    skinsEl.innerHTML = Object.entries(skins).map(([id, s]) => {
-        const owned    = state.ownedSkins.includes(id);
-        const equipped = state.equippedSkin === id;
-        const priceText = s.price === 0 ? 'Free' : s.price + ' 🪙';
-        return `<div class="store-card ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
-            <div class="preview" style="background: linear-gradient(135deg, ${s.head}, ${s.body});"></div>
-            <div class="name">${s.name}</div>
-            <div class="price ${s.price === 0 ? 'free' : ''}">${priceText}</div>
-            ${!owned
-                ? `<button id="buy-${id}" ${state.balance < s.price ? 'disabled' : ''}>Add to cart</button>`
-                : `<button class="secondary" id="equip-${id}" ${equipped ? 'disabled' : ''}>${equipped ? 'Equipped' : 'Equip'}</button>`
-            }
-        </div>`;
-    }).join('');
 
-    Object.keys(skins).forEach(id => {
-        const s        = skins[id];
-        const owned    = state.ownedSkins.includes(id);
+    livesEl.innerHTML = `
+        <div class="store-card">
+            <div class="preview" style="display:flex;align-items:center;justify-content:center;font-size:2rem;">❤️</div>
+            <div class="name">Extra Life</div>
+            <div class="price">50 🪙</div>
+            <button onclick="addToCart('extra_life', 50)">Add to Cart</button>
+        </div>
+    `;
+
+    skinsEl.innerHTML = Object.entries(skins).map(([id, s]) => {
+        const owned = state.ownedSkins.includes(id);
         const equipped = state.equippedSkin === id;
-        const buyBtn   = document.getElementById('buy-'   + id);
-        const equipBtn = document.getElementById('equip-' + id);
-        if (buyBtn)              buyBtn.onclick  = () => addToCart(id, s.price);
-        if (equipBtn && !equipped) equipBtn.onclick = async () => {
-            try {
-                await apiPost('/api/equip', { skinId: id });
-                state.equippedSkin = id;
-                renderStore();
-                toast('Skin equipped!', 'success');
-            } catch (e) { toast('Could not equip', 'error'); }
-        };
-    });
+        const priceText = s.price === 0 ? 'FREE' : `${s.price} 🪙`;
+
+        return `
+            <div class="store-card ${owned ? 'owned' : ''} ${equipped ? 'equipped' : ''}">
+                <div class="preview" style="background:${s.head}; border: 2px solid ${s.body}"></div>
+                <div class="name">${s.name}</div>
+                <div class="price ${s.price === 0 ? 'free' : ''}">${priceText}</div>
+                ${!owned ? 
+                    `<button onclick="addToCart('${id}', ${s.price})">Add to Cart</button>` : 
+                    `<button class="secondary" onclick="equipSkin('${id}')" ${equipped ? 'disabled' : ''}>
+                        ${equipped ? 'Equipped' : 'Equip'}
+                    </button>`
+                }
+            </div>
+        `;
+    }).join('');
 
     await loadCart();
     renderCart();
+}
 
-    const btnCheckout = document.getElementById('btnCheckout');
-    if (btnCheckout) btnCheckout.onclick = checkoutCart;
+async function updateQty(itemId, newQty) {
+    try {
+        if (newQty <= 0) {
+            await apiDelete(`/api/user/cart/items/${itemId}`);
+        } else {
+            await apiPatch(`/api/user/cart/items/${itemId}`, { quantity: newQty });
+        }
+        await loadCart();
+        renderCart();
+    } catch (e) {
+        toast('Update failed', 'error');
+    }
+}
+
+async function equipSkin(skinId) {
+    try {
+        const res = await apiPost('/api/equip', { skinId });
+        state.equippedSkin = res.EquippedSkin || skinId;
+        renderStore();
+        toast('Skin equipped!');
+    } catch (e) {
+        toast('Could not equip skin', 'error');
+    }
 }
 
 async function addToCart(itemId, price) {
-    if (state.balance < price) { toast('Not enough coins', 'error'); return; }
+    // We removed the immediate balance check here so user can add to cart and see it, 
+    // but the Checkout button will still be disabled if they can't afford it.
     try {
         const res = await apiPost('/api/user/cart/items', { itemId });
         cartData.items = res.items || [];
@@ -143,7 +132,7 @@ async function addToCart(itemId, price) {
         renderCart();
         toast('Added to cart', 'success');
     } catch (e) {
-        toast((e && e.json && e.json.error) || (e && e.message) || 'Could not add to cart', 'error');
+        toast('Could not add to cart', 'error');
     }
 }
 
@@ -157,13 +146,19 @@ async function checkoutCart() {
             state.ownedSkins   = res.OwnedSkins   ?? state.ownedSkins;
             state.equippedSkin = res.EquippedSkin ?? state.equippedSkin;
             if ('ExtraLives' in res) state.extraLives = Math.max(0, Number(res.ExtraLives) || 0);
+            
             await loadPlayer();
             await loadCart();
             renderCart();
+            
             document.getElementById('storeCoins').textContent = state.balance;
-            toast(res.Message || 'Purchase complete!', 'success');
-        } else {
-            toast(res.Message || 'Checkout failed', 'error');
+            toast('Purchase successful!', 'success');
+            showScreen('menu'); // Go back to menu after successful purchase
         }
-    } catch (e) { toast('Checkout failed', 'error'); }
+    } catch (e) {
+        toast('Checkout failed', 'error');
+    }
 }
+
+// Attach the checkout function to the button in index.html
+document.getElementById('btnCheckout').onclick = checkoutCart;

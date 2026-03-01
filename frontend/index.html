@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0f0f12;
+            --bg: #29295c;
             --surface: #1a1a20;
             --surface2: #24242c;
             --border: #2e2e38;
@@ -181,7 +181,6 @@
 </head>
 <body>
 
-    <!-- MENU -->
     <div id="menu" class="screen active">
         <div class="logo">Snake Pro</div>
         <p class="subtitle">Store Edition — Eat, grow, and customize.</p>
@@ -192,7 +191,6 @@
         <p class="high-score">Best score: <span id="highScore">0</span></p>
     </div>
 
-    <!-- GAME -->
     <div id="gameScreen" class="screen">
         <div class="game-hud">
             <div class="hud-item"><span class="icon">⭐</span> <span id="score">0</span></div>
@@ -212,7 +210,6 @@
         </div>
     </div>
 
-    <!-- GAME OVER -->
     <div id="gameOverScreen" class="screen">
         <h2 class="game-over-title">Game Over</h2>
         <p class="game-over-score">Score: <strong id="finalScore">0</strong></p>
@@ -225,7 +222,6 @@
         </div>
     </div>
 
-    <!-- STORE -->
     <div id="storeScreen" class="screen">
         <div class="store-header">
             <span class="store-title">Store</span>
@@ -235,11 +231,20 @@
         <div class="store-grid" id="storeLives"></div>
         <p class="store-section">Skins</p>
         <div class="store-grid" id="storeSkins"></div>
-        <p class="store-section">Cart <span id="cartCount">(0)</span></p>
+
+        <button class="btn btn-primary" id="btnGoToCart" style="margin-top:1.5rem;">View Cart <span id="cartCountBadge">(0)</span></button>
+        <button class="btn btn-secondary store-back" id="btnStoreBack">Back</button>
+    </div>
+
+    <div id="cartScreen" class="screen">
+        <div class="store-header">
+            <span class="store-title">Your Cart</span>
+            <div class="coins-badge">🪙 <span id="cartCoinsDisplay">0</span></div>
+        </div>
         <div id="cartList" class="cart-list"></div>
         <p class="cart-total">Total: <span id="cartTotal">0</span> 🪙</p>
-        <button class="btn btn-primary" id="btnCheckout" disabled>Create order</button>
-        <button class="btn btn-secondary store-back" id="btnStoreBack">Back</button>
+        <button class="btn btn-primary" id="btnCheckout" disabled>Confirm Order</button>
+        <button class="btn btn-secondary" id="btnCartBack" style="margin-top:0.5rem;">Back to Store</button>
     </div>
 
     <div id="toast" class="toast"></div> 
@@ -356,6 +361,15 @@
             if (typeof renderStore === 'function') renderStore();
             showScreen('storeScreen');
         };
+
+        // NEW: Navigation between Store and Cart
+        document.getElementById('btnGoToCart').onclick = async () => {
+            await loadCart();
+            renderCart();
+            showScreen('cartScreen');
+        };
+
+        document.getElementById('btnCartBack').onclick = () => showScreen('storeScreen');
 
         document.getElementById('btnStoreInGame').onclick = async () => {
             state.paused = true;
